@@ -1,67 +1,44 @@
-import logging
 import os
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
-    PollAnswerHandler,
     ContextTypes,
+    PollAnswerHandler,
 )
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-logging.basicConfig(level=logging.INFO)
-
-QUESTIONS = [
-    {
-        "q": "Avtomobil 18 km masofani 30 minutda bosib o'tdi. O‘rtacha tezlik?",
-        "options": ["36 m/s", "10 km/soat", "36 km/soat", "To‘g‘ri javob yo‘q"],
-        "correct": 2
-    },
-    {
-        "q": "1 soat nechta sekund?",
-        "options": ["60", "3600", "600", "360"],
-        "correct": 1
-    }
-]
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["index"] = 0
-    context.user_data["score"] = 0
-    await send_poll(update, context)
+    await update.message.reply_text(
+        "Salom! Poll yuborish uchun /poll deb yozing"
+    )
 
-async def send_poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    idx = context.user_data["index"]
+async def poll(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    question = "Qaysi til yoqadi?"
+    options = ["Python", "JavaScript", "C++", "Java"]
 
-    if idx >= len(QUESTIONS):
-        await update.message.reply_text(
-            f"✅ Test tugadi!\nNatija: {context.user_data['score']} / {len(QUESTIONS)}"
-        )
-        return
-
-    q = QUESTIONS[idx]
-    await update.message.reply_poll(
-        question=q["q"],
-        options=q["options"],
-        type="quiz",
-        correct_option_id=q["correct"],
-        is_anonymous=True,
+    await context.bot.send_poll(
+        chat_id=update.effective_chat.id,
+        question=question,
+        options=options,
+        is_anonymous=False,
+        allows_multiple_answers=False,
     )
 
 async def poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    idx = context.user_data["index"]
-    correct = QUESTIONS[idx]["correct"]
-
-    if update.poll_answer.option_ids[0] == correct:
-        context.user_data["score"] += 1
-
-    context.user_data["index"] += 1
-    await send_poll(update, context)
+    answer = update.poll_answer
+    user = answer.user.first_name
+    option_id = answer.option_ids[0]
+    print(f"{user} tanladi: {option_id}")
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("poll", poll))
     app.add_handler(PollAnswerHandler(poll_answer))
+
     app.run_polling()
 
 if __name__ == "__main__":
